@@ -1,0 +1,17 @@
+{
+  "displayName": "Git Enhance - Cross-File Diff Navigation",
+  "description": "Enhanced Git diff navigation: seamlessly jump between changes across multiple files, review loop detection, smart notifications. Press F7/Shift+F7 to navigate changes without single-file loops",
+  "command.previousChange.title": "Go to Previous Change (Enhanced)",
+  "command.nextChange.title": "Go to Next Change (Enhanced)",
+  "configuration.title": "Git Enhance",
+  "configuration.enabled.description": "Enable/disable cross-file navigation feature. When disabled, restores original VS Code behavior",
+  "configuration.notificationDuration.description": "Notification auto-dismiss duration (ms)",
+  "configuration.stateResetTimeout.description": "Time to reset pending jump state (ms)",
+  "configuration.enableLoopAcrossAllFiles.description": "Enable looping from last file to first file",
+  "configuration.maxOpenEditors.description": "Maximum number of editors to keep open during cross-file navigation",
+  "configuration.enableReviewLoop.description": "Enable review loop detection. When enabled, the extension will notify you when you've completed a full review cycle and returned to a previously reviewed file",
+  "configuration.notificationMode.description": "Control when to show boundary notifications (reached first/last change). Smart mode shows for first 3 times per VS Code session, then auto-hides",
+  "configuration.notificationMode.smart": "Smart: Show notifications for the first 3 times per VS Code session, then automatically hide. Counter resets when VS Code restarts",
+  "configuration.notificationMode.always": "Always: Always show notifications at boundaries",
+  "configuration.notificationMode.never": "Never: Never show boundary notifications"
+}

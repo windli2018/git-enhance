@@ -1,0 +1,47 @@
+import * as vscode from 'vscode';
+
+/**
+ * Centralized editor mode detection
+ */
+export class EditorModeDetector {
+  /**
+   * Detect if the current editor is in compare/diff mode
+   * Checks if the active tab is a diff editor with git scheme
+   * @param editor The editor to check
+   * @returns true if in compare mode, false if in normal edit mode
+   */
+  public static isInCompareMode(editor: vscode.TextEditor | undefined): boolean {
+    if (!editor) {
+      return false;
+    }
+
+    const scheme = editor.document.uri.scheme;
+    
+    // If current editor is git scheme, it's definitely compare mode
+    if (scheme === 'git' || scheme === 'vscode-scm') {
+      return true;
+    }
+    
+    // Check if the active tab is a diff editor
+    const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    if (activeTab?.input instanceof vscode.TabInputTextDiff) {
+      const modifiedUri = activeTab.input.modified;
+      const originalUri = activeTab.input.original;
+      
+      // Check if either side has git scheme
+      const isGitDiff = modifiedUri.scheme === 'git' || originalUri.scheme === 'git' ||
+                        modifiedUri.scheme === 'vscode-scm' || originalUri.scheme === 'vscode-scm';
+      
+      return isGitDiff;
+    }
+    
+    return false;
+  }
+
+  /**
+   * Get editor mode as string for logging
+   */
+  public static getEditorMode(editor: vscode.TextEditor | undefined): string {
+    return this.isInCompareMode(editor) ? 'compare' : 'normal';
+  }
+}

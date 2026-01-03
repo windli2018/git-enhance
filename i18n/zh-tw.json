@@ -1,0 +1,7 @@
+{
+  "reachedLastChange": "已到達當前檔案最後一處更改。再次點擊跳轉到下一個檔案",
+  "reachedFirstChange": "已到達當前檔案第一處更改。再次點擊跳轉到上一個檔案",
+  "noModifiedFiles": "未找到修改的檔案",
+  "noChangesInFile": "當前檔案無更改",
+  "alreadyReviewed": "已完成本輪審查循環"
+}

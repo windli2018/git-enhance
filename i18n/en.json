@@ -1,0 +1,7 @@
+{
+  "reachedLastChange": "Reached last change in current file. Click again to jump to next file",
+  "reachedFirstChange": "Reached first change in current file. Click again to jump to previous file",
+  "noModifiedFiles": "No modified files found",
+  "noChangesInFile": "No changes in current file",
+  "alreadyReviewed": "You have completed a full review cycle"
+}

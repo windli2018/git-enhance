@@ -1,0 +1,178 @@
+{
+  "name": "git-enhance",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "0.1.0",
+  "publisher": "WindLi",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other",
+    "Keymaps",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "git",
+    "diff",
+    "navigation",
+    "scm",
+    "enhancement",
+    "diff navigation",
+    "cross-file",
+    "code review",
+    "source control",
+    "git workflow",
+    "compare",
+    "changes",
+    "F7",
+    "jump",
+    "review cycle",
+    "multi-file",
+    "git changes",
+    "diff viewer",
+    "productivity"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gitEnhance.previousChange",
+        "title": "%command.previousChange.title%",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "gitEnhance.nextChange",
+        "title": "%command.nextChange.title%",
+        "icon": "$(arrow-down)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "gitEnhance.previousChange",
+          "group": "navigation@1",
+          "when": "config.gitEnhance.crossFileNavigation.enabled"
+        },
+        {
+          "command": "gitEnhance.nextChange",
+          "group": "navigation@2",
+          "when": "config.gitEnhance.crossFileNavigation.enabled"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "%configuration.title%",
+      "properties": {
+        "gitEnhance.crossFileNavigation.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.enabled.description%"
+        },
+        "gitEnhance.crossFileNavigation.notificationDuration": {
+          "type": "number",
+          "default": 5000,
+          "description": "%configuration.notificationDuration.description%"
+        },
+        "gitEnhance.crossFileNavigation.stateResetTimeout": {
+          "type": "number",
+          "default": 5000,
+          "description": "%configuration.stateResetTimeout.description%"
+        },
+        "gitEnhance.crossFileNavigation.enableLoopAcrossAllFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.enableLoopAcrossAllFiles.description%"
+        },
+        "gitEnhance.crossFileNavigation.maxOpenEditors": {
+          "type": "number",
+          "default": 10,
+          "description": "%configuration.maxOpenEditors.description%"
+        },
+        "gitEnhance.crossFileNavigation.enableReviewLoop": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.enableReviewLoop.description%"
+        },
+        "gitEnhance.crossFileNavigation.notificationMode": {
+          "type": "string",
+          "enum": ["smart", "always", "never"],
+          "default": "smart",
+          "description": "%configuration.notificationMode.description%",
+          "enumDescriptions": [
+            "%configuration.notificationMode.smart%",
+            "%configuration.notificationMode.always%",
+            "%configuration.notificationMode.never%"
+          ]
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "gitEnhance.previousChange",
+        "key": "shift+f7",
+        "when": "config.gitEnhance.crossFileNavigation.enabled"
+      },
+      {
+        "command": "gitEnhance.nextChange",
+        "key": "f7",
+        "when": "config.gitEnhance.crossFileNavigation.enabled"
+      },
+      {
+        "command": "-workbench.action.compareEditor.previousChange",
+        "key": "shift+f7"
+      },
+      {
+        "command": "-workbench.action.compareEditor.nextChange",
+        "key": "f7"
+      },
+      {
+        "command": "-editor.action.dirtydiff.previous",
+        "key": "shift+f7"
+      },
+      {
+        "command": "-editor.action.dirtydiff.next",
+        "key": "f7"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "package": "npm run compile && vsce package",
+    "publish": "npm run compile && vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vscode/vsce": "^2.22.0",
+    "eslint": "^8.40.0",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/windli2018/git-enhance.git"
+  },
+  "bugs": {
+    "url": "https://github.com/windli2018/git-enhance/issues"
+  },
+  "homepage": "https://github.com/windli2018/git-enhance#readme",
+  "author": {
+    "name": "Wind Li"
+  },
+  "license": "Apache-2.0",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  }
+}

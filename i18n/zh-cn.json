@@ -1,0 +1,7 @@
+{
+  "reachedLastChange": "已到达当前文件最后一处更改。再次点击跳转到下一个文件",
+  "reachedFirstChange": "已到达当前文件第一处更改。再次点击跳转到上一个文件",
+  "noModifiedFiles": "未找到修改的文件",
+  "noChangesInFile": "当前文件无更改",
+  "alreadyReviewed": "已完成本轮审查循环"
+}

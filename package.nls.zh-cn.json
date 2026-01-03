@@ -1,0 +1,17 @@
+{
+  "displayName": "Git 增强 - 跨文件差异导航",
+  "description": "增强的 Git 差异导航：在多个文件间无缝跳转变更，审查循环检测，智能通知。按 F7/Shift+F7 导航变更，无单文件循环",
+  "command.previousChange.title": "跳转到上一处更改（增强版）",
+  "command.nextChange.title": "跳转到下一处更改（增强版）",
+  "configuration.title": "Git 增强",
+  "configuration.enabled.description": "启用/禁用跨文件导航功能。禁用时，恢复 VS Code 原始默认行为",
+  "configuration.notificationDuration.description": "通知自动消失时长（毫秒）",
+  "configuration.stateResetTimeout.description": "待跳转状态重置时间（毫秒）",
+  "configuration.enableLoopAcrossAllFiles.description": "启用从最后一个文件循环到第一个文件",
+  "configuration.maxOpenEditors.description": "跨文件导航期间保持打开的最大编辑器数量",
+  "configuration.enableReviewLoop.description": "启用审查循环检测。启用后，当您完成一轮完整的审查并返回到之前已审查过的文件时，扩展将通知您",
+  "configuration.notificationMode.description": "控制何时显示边界通知（到达第一处/最后一处更改）。智能模式在每次 VS Code 会话中显示前 3 次后自动隐藏",
+  "configuration.notificationMode.smart": "智能：每次 VS Code 会话中显示前 3 次通知，之后自动隐藏。重启 VS Code 后计数器重置",
+  "configuration.notificationMode.always": "总是显示：在到达边界时始终显示通知",
+  "configuration.notificationMode.never": "不显示：从不显示边界通知"
+}
