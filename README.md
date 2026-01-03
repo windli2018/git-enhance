@@ -45,7 +45,6 @@ This extension provides the following settings:
 |---------|------|---------|-------------|
 | `gitEnhance.crossFileNavigation.enabled` | boolean | `true` | Enable/disable cross-file navigation feature. When disabled, restores original VS Code behavior |
 | `gitEnhance.crossFileNavigation.notificationDuration` | number | `5000` | Notification auto-dismiss duration (milliseconds) |
-| `gitEnhance.crossFileNavigation.stateResetTimeout` | number | `5000` | Time to reset pending jump state (milliseconds) |
 | `gitEnhance.crossFileNavigation.enableLoopAcrossAllFiles` | boolean | `true` | Enable looping from last file back to first file |
 | `gitEnhance.crossFileNavigation.maxOpenEditors` | number | `10` | Maximum number of editors to keep open during cross-file navigation |
 | `gitEnhance.crossFileNavigation.enableReviewLoop` | boolean | `true` | Enable review loop detection. When enabled, notifies you when you've completed a full review cycle |
@@ -59,7 +58,6 @@ Add to your VS Code `settings.json`:
 {
   "gitEnhance.crossFileNavigation.enabled": true,
   "gitEnhance.crossFileNavigation.notificationDuration": 5000,
-  "gitEnhance.crossFileNavigation.stateResetTimeout": 5000,
   "gitEnhance.crossFileNavigation.enableLoopAcrossAllFiles": true,
   "gitEnhance.crossFileNavigation.maxOpenEditors": 10,
   "gitEnhance.crossFileNavigation.enableReviewLoop": true,

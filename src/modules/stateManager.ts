@@ -19,8 +19,6 @@ export interface LoopModeState {
 export class StateManager {
   // Map editor URI to its boundary state
   private editorStates = new Map<string, EditorBoundaryState>();
-  private stateResetTimeoutMs: number = 5000;
-  private resetTimeouts = new Map<string, NodeJS.Timeout>();
   
   // Loop mode tracking - support multiple concurrent sessions
   private loopModeSessions = new Map<string, LoopModeState>();
@@ -28,12 +26,6 @@ export class StateManager {
   // Smart notification mode - track show count per VS Code session
   private boundaryNotificationCount: number = 0;
   private readonly SMART_MODE_MAX_COUNT = 3;
-
-  constructor(stateResetTimeoutMs?: number) {
-    if (stateResetTimeoutMs) {
-      this.stateResetTimeoutMs = stateResetTimeoutMs;
-    }
-  }
 
   private getEditorKey(editor: vscode.TextEditor | string): string {
     if (typeof editor === 'string') {
@@ -68,10 +60,6 @@ export class StateManager {
     if (value && capturedMode !== undefined) {
       state.capturedIsInCompareMode = capturedMode;
     }
-    
-    if (value) {
-      this.scheduleStateReset(editorKey);
-    }
   }
 
   public setPendingPreviousFileJump(editor: vscode.TextEditor, value: boolean, capturedMode?: boolean): void {
@@ -85,10 +73,6 @@ export class StateManager {
     
     if (value && capturedMode !== undefined) {
       state.capturedIsInCompareMode = capturedMode;
-    }
-    
-    if (value) {
-      this.scheduleStateReset(editorKey);
     }
   }
 
@@ -145,39 +129,9 @@ export class StateManager {
       state.pendingPreviousFileJump = false;
       state.capturedIsInCompareMode = undefined;
     }
-    
-    this.clearResetTimeout(editorKey);
-  }
-
-  private scheduleStateReset(editorKey: string): void {
-    this.clearResetTimeout(editorKey);
-    
-    const timeout = setTimeout(() => {
-      const state = this.editorStates.get(editorKey);
-      if (state) {
-        state.pendingNextFileJump = false;
-        state.pendingPreviousFileJump = false;
-      }
-      this.resetTimeouts.delete(editorKey);
-    }, this.stateResetTimeoutMs);
-    
-    this.resetTimeouts.set(editorKey, timeout);
-  }
-
-  private clearResetTimeout(editorKey: string): void {
-    const timeout = this.resetTimeouts.get(editorKey);
-    if (timeout) {
-      clearTimeout(timeout);
-      this.resetTimeouts.delete(editorKey);
-    }
   }
 
   public dispose(): void {
-    // Clear all timeouts
-    for (const timeout of this.resetTimeouts.values()) {
-      clearTimeout(timeout);
-    }
-    this.resetTimeouts.clear();
     this.editorStates.clear();
     this.loopModeSessions.clear();
     this.boundaryNotificationCount = 0;

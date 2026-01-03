@@ -3,7 +3,6 @@ import * as vscode from 'vscode';
 export interface FeatureConfig {
   enabled: boolean;
   notificationDuration: number;
-  stateResetTimeout: number;
   enableLoopAcrossAllFiles: boolean;
   maxOpenEditors: number;
   notificationMode: 'smart' | 'always' | 'never';
@@ -28,7 +27,6 @@ export class ConfigurationManager {
     return {
       enabled: config.get<boolean>('enabled', true),
       notificationDuration: config.get<number>('notificationDuration', 4000),
-      stateResetTimeout: config.get<number>('stateResetTimeout', 5000),
       enableLoopAcrossAllFiles: config.get<boolean>('enableLoopAcrossAllFiles', true),
       maxOpenEditors: config.get<number>('maxOpenEditors', 5),
       notificationMode: config.get<'smart' | 'always' | 'never'>('notificationMode', 'smart')

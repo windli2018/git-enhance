@@ -57,11 +57,59 @@ export class CommandHandler {
     let sessionId: string;
     
     if (!isTrackedEditor) {
-      // Not tracked - start new session
-      sessionId = editorTracker.startNewSession();
-      editorTracker.markEditor(editor);
-      const editorMode = EditorModeDetector.isInCompareMode(editor) ? 'compare' : 'normal';
-      this.stateManager.startLoopSession(sessionId, fileUri, 'next', editorMode);
+      // Check if file has actual changes before starting session
+      const hasChanges = await this.sourceControlQuery.fileHasChanges(editor.document.uri);
+      
+      if (hasChanges) {
+        // File has changes - start new session
+        sessionId = editorTracker.startNewSession();
+        editorTracker.markEditor(editor);
+        const editorMode = EditorModeDetector.isInCompareMode(editor) ? 'compare' : 'normal';
+        this.stateManager.startLoopSession(sessionId, fileUri, 'next', editorMode);
+      } else {
+        // File has no changes - check boundary and offer to jump to first changed file
+        const result = await this.boundaryDetector.checkAndExecuteNext(editor);
+        
+        if (result.isAtLast) {
+          // At boundary - offer to jump to first changed file in repo
+          const pendingJump = this.stateManager.getPendingNextFileJump(editor);
+          
+          if (pendingJump) {
+            // Second click - jump to first changed file
+            this.notificationManager.closeCurrentProgress();
+            this.stateManager.resetPendingStates(editor);
+            
+            const modifiedFiles = await this.sourceControlQuery.getModifiedFilesInSameRepo(editor.document.uri);
+            if (modifiedFiles.length === 0) {
+              await this.notificationManager.showNoModifiedFiles();
+              return;
+            }
+            
+            // Jump to first file in compare mode
+            const firstFile = modifiedFiles[0];
+            await this.crossFileNavigator.jumpToNextFile(firstFile, true);
+          } else {
+            // First click - show notification
+            this.stateManager.setPendingNextFileJump(editor, true, false);
+            
+            const shouldShow = this.stateManager.shouldShowBoundaryNotification(this.notificationMode);
+            this.notificationManager.setShouldShow(shouldShow);
+            const cancelled = await this.notificationManager.showReachedLastChange();
+            
+            if (cancelled) {
+              this.stateManager.resetPendingStates(editor);
+            }
+            
+            if (this.notificationMode === 'smart' && shouldShow) {
+              this.stateManager.incrementNotificationCount();
+            }
+          }
+        } else {
+          // Not at boundary, reset pending
+          this.stateManager.resetPendingStates(editor);
+        }
+        return;
+      }
     } else {
       // Get session ID from tracked editor
       sessionId = editorTracker.getEditorSessionId(editor)!;
@@ -115,7 +163,7 @@ export class CommandHandler {
         const sessionMode = session?.editorMode === 'compare';
         this.stateManager.resetPendingStates(editor);
         
-        const modifiedFiles = await this.sourceControlQuery.getModifiedFiles();
+        const modifiedFiles = await this.sourceControlQuery.getModifiedFilesInSameRepo(editor.document.uri);
         if (modifiedFiles.length === 0) {
           await this.notificationManager.showNoModifiedFiles();
           return;
@@ -187,11 +235,59 @@ export class CommandHandler {
     let sessionId: string;
     
     if (!isTrackedEditor) {
-      // Not tracked - start new session
-      sessionId = editorTracker.startNewSession();
-      editorTracker.markEditor(editor);
-      const editorMode = EditorModeDetector.isInCompareMode(editor) ? 'compare' : 'normal';
-      this.stateManager.startLoopSession(sessionId, fileUri, 'previous', editorMode);
+      // Check if file has actual changes before starting session
+      const hasChanges = await this.sourceControlQuery.fileHasChanges(editor.document.uri);
+      
+      if (hasChanges) {
+        // File has changes - start new session
+        sessionId = editorTracker.startNewSession();
+        editorTracker.markEditor(editor);
+        const editorMode = EditorModeDetector.isInCompareMode(editor) ? 'compare' : 'normal';
+        this.stateManager.startLoopSession(sessionId, fileUri, 'previous', editorMode);
+      } else {
+        // File has no changes - check boundary and offer to jump to last changed file
+        const result = await this.boundaryDetector.checkAndExecutePrevious(editor);
+        
+        if (result.isAtFirst) {
+          // At boundary - offer to jump to last changed file in repo
+          const pendingJump = this.stateManager.getPendingPreviousFileJump(editor);
+          
+          if (pendingJump) {
+            // Second click - jump to last changed file
+            this.notificationManager.closeCurrentProgress();
+            this.stateManager.resetPendingStates(editor);
+            
+            const modifiedFiles = await this.sourceControlQuery.getModifiedFilesInSameRepo(editor.document.uri);
+            if (modifiedFiles.length === 0) {
+              await this.notificationManager.showNoModifiedFiles();
+              return;
+            }
+            
+            // Jump to last file in compare mode
+            const lastFile = modifiedFiles[modifiedFiles.length - 1];
+            await this.crossFileNavigator.jumpToPreviousFile(lastFile, true);
+          } else {
+            // First click - show notification
+            this.stateManager.setPendingPreviousFileJump(editor, true, false);
+            
+            const shouldShow = this.stateManager.shouldShowBoundaryNotification(this.notificationMode);
+            this.notificationManager.setShouldShow(shouldShow);
+            const cancelled = await this.notificationManager.showReachedFirstChange();
+            
+            if (cancelled) {
+              this.stateManager.resetPendingStates(editor);
+            }
+            
+            if (this.notificationMode === 'smart' && shouldShow) {
+              this.stateManager.incrementNotificationCount();
+            }
+          }
+        } else {
+          // Not at boundary, reset pending
+          this.stateManager.resetPendingStates(editor);
+        }
+        return;
+      }
     } else {
       // Get session ID from tracked editor
       sessionId = editorTracker.getEditorSessionId(editor)!;
@@ -245,7 +341,7 @@ export class CommandHandler {
         const sessionMode = session?.editorMode === 'compare';
         this.stateManager.resetPendingStates(editor);
         
-        const modifiedFiles = await this.sourceControlQuery.getModifiedFiles();
+        const modifiedFiles = await this.sourceControlQuery.getModifiedFilesInSameRepo(editor.document.uri);
         if (modifiedFiles.length === 0) {
           await this.notificationManager.showNoModifiedFiles();
           return;

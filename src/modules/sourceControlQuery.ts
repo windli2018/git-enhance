@@ -56,6 +56,93 @@ export class SourceControlQuery {
     return uniqueFiles;
   }
 
+  /**
+   * Get repository for a given file URI
+   */
+  public async getRepositoryForFile(fileUri: vscode.Uri): Promise<any | undefined> {
+    await this.ensureGitExtension();
+
+    if (!this.gitExtension) {
+      return undefined;
+    }
+
+    const git = this.gitExtension.getAPI(1);
+    if (!git || !git.repositories || git.repositories.length === 0) {
+      return undefined;
+    }
+
+    // Find repository containing this file
+    for (const repo of git.repositories) {
+      const repoPath = repo.rootUri.fsPath;
+      if (fileUri.fsPath.startsWith(repoPath)) {
+        return repo;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Get modified files from the same repository as the given file
+   */
+  public async getModifiedFilesInSameRepo(fileUri: vscode.Uri): Promise<vscode.Uri[]> {
+    const repo = await this.getRepositoryForFile(fileUri);
+    if (!repo) {
+      // Fallback to all files if repo not found
+      return this.getModifiedFiles();
+    }
+
+    const modifiedFiles: vscode.Uri[] = [];
+    const changes = repo.state.workingTreeChanges || [];
+    const indexChanges = repo.state.indexChanges || [];
+    
+    // Combine working tree and index changes
+    const allChanges = [...changes, ...indexChanges];
+    
+    for (const change of allChanges) {
+      if (change.uri) {
+        modifiedFiles.push(change.uri);
+      }
+    }
+
+    // Remove duplicates and sort by path
+    const uniqueFiles = Array.from(new Set(modifiedFiles.map(uri => uri.toString())))
+      .map(uriString => vscode.Uri.parse(uriString))
+      .sort((a, b) => a.fsPath.localeCompare(b.fsPath));
+
+    return uniqueFiles;
+  }
+
+  /**
+   * Check if file has actual diff changes
+   */
+  public async fileHasChanges(fileUri: vscode.Uri): Promise<boolean> {
+    await this.ensureGitExtension();
+
+    if (!this.gitExtension) {
+      return false;
+    }
+
+    const git = this.gitExtension.getAPI(1);
+    if (!git) {
+      return false;
+    }
+
+    const repo = await this.getRepositoryForFile(fileUri);
+    if (!repo) {
+      return false;
+    }
+
+    // Check if file exists in working tree or index changes
+    const changes = repo.state.workingTreeChanges || [];
+    const indexChanges = repo.state.indexChanges || [];
+    const allChanges = [...changes, ...indexChanges];
+
+    return allChanges.some(change => 
+      change.uri && change.uri.toString() === fileUri.toString()
+    );
+  }
+
   public async getFileIndex(currentFile: vscode.Uri): Promise<number> {
     const modifiedFiles = await this.getModifiedFiles();
     return modifiedFiles.findIndex(uri => uri.toString() === currentFile.toString());

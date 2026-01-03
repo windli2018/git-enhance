@@ -6,7 +6,6 @@
   "configuration.title": "Git Enhance",
   "configuration.enabled.description": "Enable/disable cross-file navigation feature. When disabled, restores original VS Code behavior",
   "configuration.notificationDuration.description": "Notification auto-dismiss duration (ms)",
-  "configuration.stateResetTimeout.description": "Time to reset pending jump state (ms)",
   "configuration.enableLoopAcrossAllFiles.description": "Enable looping from last file to first file",
   "configuration.maxOpenEditors.description": "Maximum number of editors to keep open during cross-file navigation",
   "configuration.enableReviewLoop.description": "Enable review loop detection. When enabled, the extension will notify you when you've completed a full review cycle and returned to a previously reviewed file",

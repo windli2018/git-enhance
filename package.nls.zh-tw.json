@@ -6,7 +6,6 @@
   "configuration.title": "Git 增強",
   "configuration.enabled.description": "啟用/禁用跨檔案導覽功能。禁用時，恢復 VS Code 原始預設行為",
   "configuration.notificationDuration.description": "通知自動消失時長（毫秒）",
-  "configuration.stateResetTimeout.description": "待跳轉狀態重置時間（毫秒）",
   "configuration.enableLoopAcrossAllFiles.description": "啟用從最後一個檔案循環到第一個檔案",
   "configuration.maxOpenEditors.description": "跨檔案導覽期間保持開啟的最大編輯器數量",
   "configuration.enableReviewLoop.description": "啟用審查循環檢測。啟用後，當您完成一輪完整的審查並返回到之前已審查過的檔案時，擴充功能將通知您",

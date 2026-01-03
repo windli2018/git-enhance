@@ -2,7 +2,7 @@
   "name": "git-enhance",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "WindLi",
   "engines": {
     "vscode": "^1.80.0"
@@ -77,11 +77,6 @@
           "type": "number",
           "default": 5000,
           "description": "%configuration.notificationDuration.description%"
-        },
-        "gitEnhance.crossFileNavigation.stateResetTimeout": {
-          "type": "number",
-          "default": 5000,
-          "description": "%configuration.stateResetTimeout.description%"
         },
         "gitEnhance.crossFileNavigation.enableLoopAcrossAllFiles": {
           "type": "boolean",

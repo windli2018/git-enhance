@@ -45,7 +45,6 @@
 |------|------|--------|------|
 | `gitEnhance.crossFileNavigation.enabled` | boolean | `true` | 啟用/停用跨檔案導覽功能。停用時，恢復 VS Code 原始預設行為 |
 | `gitEnhance.crossFileNavigation.notificationDuration` | number | `5000` | 通知自動消失時長（毫秒） |
-| `gitEnhance.crossFileNavigation.stateResetTimeout` | number | `5000` | 待跳轉狀態重置時間（毫秒） |
 | `gitEnhance.crossFileNavigation.enableLoopAcrossAllFiles` | boolean | `true` | 啟用從最後一個檔案循環到第一個檔案 |
 | `gitEnhance.crossFileNavigation.maxOpenEditors` | number | `10` | 跨檔案導覽期間保持開啟的最大編輯器數量 |
 | `gitEnhance.crossFileNavigation.enableReviewLoop` | boolean | `true` | 啟用審查循環檢測。啟用後，當您完成一輪完整的審查並返回到之前已審查過的檔案時，擴充功能將通知您 |
@@ -59,7 +58,6 @@
 {
   "gitEnhance.crossFileNavigation.enabled": true,
   "gitEnhance.crossFileNavigation.notificationDuration": 5000,
-  "gitEnhance.crossFileNavigation.stateResetTimeout": 5000,
   "gitEnhance.crossFileNavigation.enableLoopAcrossAllFiles": true,
   "gitEnhance.crossFileNavigation.maxOpenEditors": 10,
   "gitEnhance.crossFileNavigation.enableReviewLoop": true,

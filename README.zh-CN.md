@@ -45,7 +45,6 @@
 |------|------|--------|------|
 | `gitEnhance.crossFileNavigation.enabled` | boolean | `true` | 启用/禁用跨文件导航功能。禁用时，恢复 VS Code 原始默认行为 |
 | `gitEnhance.crossFileNavigation.notificationDuration` | number | `5000` | 通知自动消失时长（毫秒） |
-| `gitEnhance.crossFileNavigation.stateResetTimeout` | number | `5000` | 待跳转状态重置时间（毫秒） |
 | `gitEnhance.crossFileNavigation.enableLoopAcrossAllFiles` | boolean | `true` | 启用从最后一个文件循环到第一个文件 |
 | `gitEnhance.crossFileNavigation.maxOpenEditors` | number | `10` | 跨文件导航期间保持打开的最大编辑器数量 |
 | `gitEnhance.crossFileNavigation.enableReviewLoop` | boolean | `true` | 启用审查循环检测。启用后，当您完成一轮完整的审查并返回到之前已审查过的文件时，扩展将通知您 |
@@ -59,7 +58,6 @@
 {
   "gitEnhance.crossFileNavigation.enabled": true,
   "gitEnhance.crossFileNavigation.notificationDuration": 5000,
-  "gitEnhance.crossFileNavigation.stateResetTimeout": 5000,
   "gitEnhance.crossFileNavigation.enableLoopAcrossAllFiles": true,
   "gitEnhance.crossFileNavigation.maxOpenEditors": 10,
   "gitEnhance.crossFileNavigation.enableReviewLoop": true,

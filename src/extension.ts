@@ -58,7 +58,7 @@ function initializeFeature(context: vscode.ExtensionContext): void {
 
   // Initialize all modules
   const i18nProvider = new I18nProvider(context);
-  stateManager = new StateManager(config.stateResetTimeout);
+  stateManager = new StateManager();
   const boundaryDetector = new BoundaryDetector();
   const notificationManager = new NotificationManager(i18nProvider, config.notificationDuration);
   const sourceControlQuery = new SourceControlQuery();

@@ -26,7 +26,8 @@ export class CrossFileNavigator {
       isInCompareMode = EditorModeDetector.isInCompareMode(currentEditor);
     }
     
-    const nextFile = await this.sourceControlQuery.getNextFile(currentUri, this.enableLoop);
+    // Get next file from same repository
+    const nextFile = await this.getNextFileInSameRepo(currentUri);
     
     if (!nextFile) {
       return false;
@@ -47,13 +48,66 @@ export class CrossFileNavigator {
       isInCompareMode = EditorModeDetector.isInCompareMode(currentEditor);
     }
     
-    const previousFile = await this.sourceControlQuery.getPreviousFile(currentUri, this.enableLoop);
+    // Get previous file from same repository
+    const previousFile = await this.getPreviousFileInSameRepo(currentUri);
     
     if (!previousFile) {
       return false;
     }
 
     return await this.openFileAndNavigateToLastChange(previousFile, isInCompareMode);
+  }
+
+  private async getNextFileInSameRepo(currentUri: vscode.Uri): Promise<vscode.Uri | undefined> {
+    const modifiedFiles = await this.sourceControlQuery.getModifiedFilesInSameRepo(currentUri);
+    if (modifiedFiles.length === 0) {
+      return undefined;
+    }
+
+    const currentIndex = modifiedFiles.findIndex(uri => uri.path === currentUri.path);
+    
+    if (currentIndex === -1) {
+      // Current file not found, return first file
+      return modifiedFiles[0];
+    }
+
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < modifiedFiles.length) {
+      return modifiedFiles[nextIndex];
+    }
+
+    // At last file, loop if enabled
+    if (this.enableLoop && modifiedFiles.length > 0) {
+      return modifiedFiles[0];
+    }
+
+    return undefined;
+  }
+
+  private async getPreviousFileInSameRepo(currentUri: vscode.Uri): Promise<vscode.Uri | undefined> {
+    const modifiedFiles = await this.sourceControlQuery.getModifiedFilesInSameRepo(currentUri);
+    if (modifiedFiles.length === 0) {
+      return undefined;
+    }
+
+    const currentIndex = modifiedFiles.findIndex(uri => uri.toString() === currentUri.toString());
+    
+    if (currentIndex === -1) {
+      // Current file not found, return last file
+      return modifiedFiles[modifiedFiles.length - 1];
+    }
+
+    const prevIndex = currentIndex - 1;
+    if (prevIndex >= 0) {
+      return modifiedFiles[prevIndex];
+    }
+
+    // At first file, loop if enabled
+    if (this.enableLoop && modifiedFiles.length > 0) {
+      return modifiedFiles[modifiedFiles.length - 1];
+    }
+
+    return undefined;
   }
 
   private async openFileAndNavigateToFirstChange(fileUri: vscode.Uri, isInCompareMode: boolean): Promise<boolean> {
@@ -79,13 +133,20 @@ export class CrossFileNavigator {
       // Wait a bit for the editor to be ready
       await this.delay(150);
       
-      // Navigate to first change using centralized command
+      // Navigate to first change: move to end then execute next
       const newEditor = vscode.window.activeTextEditor;
       
       if (newEditor) {
+        // Move cursor to end of file
+        const lastLine = newEditor.document.lineCount - 1;
+        const lastChar = newEditor.document.lineAt(lastLine).text.length;
+        const endPosition = new vscode.Position(lastLine, lastChar);
+        newEditor.selection = new vscode.Selection(endPosition, endPosition);
+        
         // Mark editor as tracked by extension
         this.editorTracker.markEditor(newEditor);
         
+        // Execute next to jump to first change
         await DiffNavigationCommands.executeNext(newEditor);
       } else {
       }
@@ -114,14 +175,18 @@ export class CrossFileNavigator {
       // Wait a bit for the editor to be ready
       await this.delay(150);
       
-      // Navigate to last change - for now, just go to first change using centralized command
-      // TODO: Implement proper last change navigation
+      // Navigate to last change: move to start then execute previous
       const newEditor = vscode.window.activeTextEditor;
       if (newEditor) {
+        // Move cursor to start of file
+        const startPosition = new vscode.Position(0, 0);
+        newEditor.selection = new vscode.Selection(startPosition, startPosition);
+        
         // Mark editor as tracked by extension
         this.editorTracker.markEditor(newEditor);
         
-        await DiffNavigationCommands.executeNext(newEditor);
+        // Execute previous to jump to last change
+        await DiffNavigationCommands.executePrevious(newEditor);
       }
       
       return true;
