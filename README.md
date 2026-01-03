@@ -88,14 +88,16 @@ Git Enhance is designed as an extensible platform for Git-related enhancements. 
 The following features are under consideration for future releases:
 
 **Code Review & Annotation:**
-- Line-level annotations and comments
-- File-level notes and remarks
-- Send file diffs to AI for review and suggestions
+- [ ] Line-level annotations and comments
+- [ ] File-level notes and remarks
+- [ ] Annotation processing and management
+- [ ] Send file diffs to AI for review and suggestions
+- [ ] Batch send line-level and file-level annotations to AI for analysis
 
 **Commit Management:**
-- Modify commit author information
-- Edit recent commit messages
-- Batch commit message updates
+- [ ] Modify commit author information
+- [ ] Edit recent commit messages
+- [ ] Batch commit message updates
 
 ## Known Issues
 
