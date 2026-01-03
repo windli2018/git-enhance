@@ -83,6 +83,20 @@ Add to your VS Code `settings.json`:
 
 Git Enhance is designed as an extensible platform for Git-related enhancements. The cross-file diff navigation is the first feature, with more features planned for future releases.
 
+### Planned Features (TODO)
+
+The following features are under consideration for future releases:
+
+**Code Review & Annotation:**
+- Line-level annotations and comments
+- File-level notes and remarks
+- Send file diffs to AI for review and suggestions
+
+**Commit Management:**
+- Modify commit author information
+- Edit recent commit messages
+- Batch commit message updates
+
 ## Known Issues
 
 - Boundary detection is currently heuristic-based and may not be 100% accurate in all scenarios
