@@ -49,6 +49,7 @@
 | `gitEnhance.crossFileNavigation.maxOpenEditors` | number | `10` | 跨文件导航期间保持打开的最大编辑器数量 |
 | `gitEnhance.crossFileNavigation.enableReviewLoop` | boolean | `true` | 启用审查循环检测。启用后，当您完成一轮完整的审查并返回到之前已审查过的文件时，扩展将通知您 |
 | `gitEnhance.crossFileNavigation.notificationMode` | string | `smart` | 控制何时显示边界通知：`smart`（每次会话前 3 次）、`always` 或 `never` |
+| `gitEnhance.crossFileNavigation.skipPendingCheck` | boolean | `false` | 跳过等待检查，到达边界时直接跳转到下一个/上一个文件 |
 
 ### 配置示例
 

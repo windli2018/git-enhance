@@ -47,14 +47,23 @@ export class EditorModeDetector {
   }
 
   /**
-   * Detect the source of the current file (workingTree or index)
+   * Detect the source of the current file (workingTree, index, or merge)
    * This helps determine which git change list the current file belongs to
    * @param editor The editor to check
-   * @returns 'index' if comparing staged changes, 'workingTree' otherwise
+   * @param editorTracker Optional editor tracker to get pre-marked source
+   * @returns 'index' if comparing staged changes, 'merge' if in merge conflict, 'workingTree' otherwise
    */
-  public static getFileSource(editor: vscode.TextEditor | undefined): 'workingTree' | 'index' {
+  public static getFileSource(editor: vscode.TextEditor | undefined, editorTracker?: any): 'workingTree' | 'index' | 'merge' {
     if (!editor) {
       return 'workingTree';
+    }
+
+    // If editor tracker is provided, check for pre-marked source first
+    if (editorTracker && typeof editorTracker.getEditorFileSource === 'function') {
+      const premarkedSource = editorTracker.getEditorFileSource(editor);
+      if (premarkedSource) {
+        return premarkedSource;
+      }
     }
 
     // Check if the active tab is a diff editor
@@ -64,6 +73,12 @@ export class EditorModeDetector {
     ) {
       const modifiedUri = activeTab.input.modified;
       const originalUri = activeTab.input.original;
+      
+      // Check for merge conflicts (both sides are git scheme with merge-base)
+      const query = new URLSearchParams(originalUri.query);
+      if (query.has('mergeBase')) {
+        return 'merge';
+      }
       
       // Staged changes: both sides are git scheme (index vs HEAD)
       if (originalUri.scheme === 'git' && modifiedUri.scheme === 'git') {

@@ -254,7 +254,12 @@ export class StateManager {
     }
   }
 
-  public startLoopSession(sessionId: string, startFileUri: string, direction: 'next' | 'previous', editorMode: 'compare' | 'normal'): void {
+  public startLoopSession(
+    sessionId: string, 
+    startFileUri: string, 
+    direction: 'next' | 'previous', 
+    editorMode: 'compare' | 'normal'
+  ): void {
     const session: LoopModeState = {
       startFileUri,
       direction,

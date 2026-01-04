@@ -41,7 +41,7 @@ export class CrossFileNavigator {
    * @param navigateCommand The navigation command to execute
    * @param inheritSession Optional session to inherit from the opener editor
    */
-  private async navigateToChange(position: vscode.Position, navigateCommand: 'next' | 'previous', inheritSession?: LoopModeState): Promise<void> {
+  private async navigateToChange(position: vscode.Position, navigateCommand: 'next' | 'previous', inheritSession?: LoopModeState, fileWithSource?: FileWithSource): Promise<void> {
     const newEditor = vscode.window.activeTextEditor;
     if (newEditor) {
       // Move cursor to the specified position
@@ -51,9 +51,18 @@ export class CrossFileNavigator {
       // If no session, the editor should already be tracked or will be tracked by caller
       if (inheritSession) {
         // Inherit session from opener editor
-        this.editorTracker.markEditorWithSessionId(newEditor, inheritSession.sessionId);
+        if (fileWithSource) {
+          // Mark the editor with both session ID and file source
+          this.editorTracker.markEditorWithSessionIdAndSource(newEditor, inheritSession.sessionId, fileWithSource.source);
+        } else {
+          this.editorTracker.markEditorWithSessionId(newEditor, inheritSession.sessionId);
+        }
+      } else if (fileWithSource) {
+        // If no inheritSession but we have fileWithSource, just mark the source
+        const newSessionId = this.editorTracker.markEditor(newEditor);
+        this.editorTracker.markEditorWithSessionIdAndSource(newEditor, newSessionId, fileWithSource.source);
       }
-      // Note: If no inheritSession, we don't mark the editor here
+      // Note: If no inheritSession and no fileWithSource, we don't mark the editor here
       // The caller (commandHandler) should handle session creation
       
       // Execute navigation command
@@ -82,7 +91,7 @@ export class CrossFileNavigator {
         const lastLine = newEditor.document.lineCount - 1;
         const lastChar = newEditor.document.lineAt(lastLine).text.length;
         const endPosition = new vscode.Position(lastLine, lastChar);
-        await this.navigateToChange(endPosition, 'next', inheritSession);
+        await this.navigateToChange(endPosition, 'next', inheritSession, fileWithSource);
       }
       
       return true;
@@ -103,8 +112,11 @@ export class CrossFileNavigator {
       await this.delay(150);
       
       // Navigate to last change: move to start then execute previous
-      const startPosition = new vscode.Position(0, 0);
-      await this.navigateToChange(startPosition, 'previous', inheritSession);
+      const newEditor = vscode.window.activeTextEditor;
+      if (newEditor) {
+        const startPosition = new vscode.Position(0, 0);
+        await this.navigateToChange(startPosition, 'previous', inheritSession, fileWithSource);
+      }
       
       return true;
     } catch (error) {

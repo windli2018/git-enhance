@@ -6,6 +6,7 @@ import { CrossFileNavigator } from './crossFileNavigator';
 import { SourceControlQuery } from './sourceControlQuery';
 import { DiffNavigationCommands } from './diffNavigationCommands';
 import { EditorModeDetector } from './editorModeDetector';
+import { ConfigurationManager } from './configurationManager';
 
 export class CommandHandler {
   private disposables: vscode.Disposable[] = [];
@@ -17,7 +18,8 @@ export class CommandHandler {
     private boundaryDetector: BoundaryDetector,
     private notificationManager: NotificationManager,
     private crossFileNavigator: CrossFileNavigator,
-    private sourceControlQuery: SourceControlQuery
+    private sourceControlQuery: SourceControlQuery,
+    private configurationManager: ConfigurationManager
   ) {
     // Set editorTracker reference in stateManager for unified session management
     this.stateManager.setEditorTracker(this.crossFileNavigator.getEditorTracker());
@@ -39,9 +41,8 @@ export class CommandHandler {
         
         // Has-changes file navigation
         getNextFile: (editor: vscode.TextEditor) => {
-          const currentEditor = vscode.window.activeTextEditor;
-          const currentSource = EditorModeDetector.getFileSource(currentEditor);
-          return this.sourceControlQuery.getNextModifiedFile(editor.document.uri, currentSource);
+          const source = EditorModeDetector.getFileSource(editor, this.crossFileNavigator.getEditorTracker());
+          return this.sourceControlQuery.getNextModifiedFile(editor.document.uri, source);
         },
         openFile: (file: any, sessionMode: boolean, session: any) => 
           this.crossFileNavigator.openFileAndNavigateToFirstChange(file, sessionMode, session)
@@ -61,9 +62,8 @@ export class CommandHandler {
         
         // Has-changes file navigation
         getNextFile: (editor: vscode.TextEditor) => {
-          const currentEditor = vscode.window.activeTextEditor;
-          const currentSource = EditorModeDetector.getFileSource(currentEditor);
-          return this.sourceControlQuery.getPreviousModifiedFile(editor.document.uri, currentSource);
+          const source = EditorModeDetector.getFileSource(editor, this.crossFileNavigator.getEditorTracker());
+          return this.sourceControlQuery.getPreviousModifiedFile(editor.document.uri, source);
         },
         openFile: (file: any, sessionMode: boolean, session: any) => 
           this.crossFileNavigator.openFileAndNavigateToLastChange(file, sessionMode, session)
@@ -90,6 +90,11 @@ export class CommandHandler {
     this.notificationMode = mode;
   }
 
+  private ignorePendingCheck(): boolean {
+    const config = this.configurationManager.getConfig();
+    return config.skipPendingCheck;
+  }
+
   /**
    * Handle navigation in files with no changes
    * Offers to jump to first/last changed file when at boundary
@@ -108,7 +113,7 @@ export class CommandHandler {
     }
 
     // At boundary - check if pending jump exists
-    const pendingJump = strategy.getPendingJump(editor);
+    const pendingJump = this.ignorePendingCheck() || strategy.getPendingJump(editor);
     
     if (pendingJump) {
       // Second click - jump to first/last changed file
@@ -141,8 +146,7 @@ export class CommandHandler {
     const newSession = this.stateManager.getOrCreateSession(
       editor, 
       direction, 
-      'compare',
-      targetFile.uri.toString()
+      'compare'
     );
     
     if (!newSession) {
@@ -229,7 +233,7 @@ export class CommandHandler {
     await this.handleStartFileReview(session, fileUri, direction);
 
     // Check pending state
-    const pendingJump = strategy.getPendingJump(editor);
+    const pendingJump = this.ignorePendingCheck() || strategy.getPendingJump(editor);
     
     if (pendingJump) {
       // Second click at boundary - jump to next/previous file

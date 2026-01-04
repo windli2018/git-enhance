@@ -103,6 +103,11 @@
             "%configuration.notificationMode.always%",
             "%configuration.notificationMode.never%"
           ]
+        },
+        "gitEnhance.crossFileNavigation.skipPendingCheck": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.skipPendingCheck.description%"
         }
       }
     },

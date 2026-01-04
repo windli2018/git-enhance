@@ -4,6 +4,7 @@ interface TrackedEditorInfo {
   editor: vscode.TextEditor;
   timestamp: number;
   sessionId: string;  // Each editor has its own session ID
+  fileSource?: 'workingTree' | 'index' | 'merge';  // Source of the file (workingTree, index, or merge)
 }
 
 /**
@@ -49,6 +50,26 @@ export class EditorTracker {
       editor,
       timestamp: Date.now(),
       sessionId
+    };
+    
+    this.trackedEditors.set(editor, info);
+    
+    // Check if exceeds limit and close oldest
+    this.enforceLimit();
+  }
+
+  /**
+   * Mark an editor with a specific session ID and file source
+   * @param editor The editor to mark
+   * @param sessionId The session ID to assign
+   * @param fileSource The source of the file
+   */
+  public markEditorWithSessionIdAndSource(editor: vscode.TextEditor, sessionId: string, fileSource: 'workingTree' | 'index' | 'merge'): void {
+    const info: TrackedEditorInfo = {
+      editor,
+      timestamp: Date.now(),
+      sessionId,
+      fileSource
     };
     
     this.trackedEditors.set(editor, info);
@@ -150,6 +171,16 @@ export class EditorTracker {
   public getEditorSessionId(editor: vscode.TextEditor): string | undefined {
     const info = this.trackedEditors.get(editor);
     return info?.sessionId;
+  }
+
+  /**
+   * Get the file source for an editor
+   * @param editor The editor to get source for
+   * @returns file source if available, undefined otherwise
+   */
+  public getEditorFileSource(editor: vscode.TextEditor): 'workingTree' | 'index' | 'merge' | undefined {
+    const info = this.trackedEditors.get(editor);
+    return info?.fileSource;
   }
 
   /**

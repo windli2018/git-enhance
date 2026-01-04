@@ -71,7 +71,8 @@ function initializeFeature(context: vscode.ExtensionContext): void {
     boundaryDetector,
     notificationManager,
     crossFileNavigator,
-    sourceControlQuery
+    sourceControlQuery,
+    configurationManager
   );
 
   // Set notification mode

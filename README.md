@@ -49,6 +49,7 @@ This extension provides the following settings:
 | `gitEnhance.crossFileNavigation.maxOpenEditors` | number | `10` | Maximum number of editors to keep open during cross-file navigation |
 | `gitEnhance.crossFileNavigation.enableReviewLoop` | boolean | `true` | Enable review loop detection. When enabled, notifies you when you've completed a full review cycle |
 | `gitEnhance.crossFileNavigation.notificationMode` | string | `smart` | Control when to show boundary notifications: `smart` (first 3 times per session), `always`, or `never` |
+| `gitEnhance.crossFileNavigation.skipPendingCheck` | boolean | `false` | Skip pending check and jump directly to next/previous file when reaching boundary |
 
 ### Example Configuration
 

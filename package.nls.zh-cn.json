@@ -12,5 +12,6 @@
   "configuration.notificationMode.description": "控制何时显示边界通知（到达第一处/最后一处更改）。智能模式在每次 VS Code 会话中显示前 3 次后自动隐藏",
   "configuration.notificationMode.smart": "智能：每次 VS Code 会话中显示前 3 次通知，之后自动隐藏。重启 VS Code 后计数器重置",
   "configuration.notificationMode.always": "总是显示：在到达边界时始终显示通知",
-  "configuration.notificationMode.never": "不显示：从不显示边界通知"
+  "configuration.notificationMode.never": "不显示：从不显示边界通知",
+  "configuration.skipPendingCheck.description": "跳过等待检查，到达边界时直接跳转到下一个/上一个文件"
 }

@@ -6,6 +6,7 @@ export interface FeatureConfig {
   enableLoopAcrossAllFiles: boolean;
   maxOpenEditors: number;
   notificationMode: 'smart' | 'always' | 'never';
+  skipPendingCheck: boolean;
 }
 
 export class ConfigurationManager {
@@ -29,7 +30,8 @@ export class ConfigurationManager {
       notificationDuration: config.get<number>('notificationDuration', 4000),
       enableLoopAcrossAllFiles: config.get<boolean>('enableLoopAcrossAllFiles', true),
       maxOpenEditors: config.get<number>('maxOpenEditors', 5),
-      notificationMode: config.get<'smart' | 'always' | 'never'>('notificationMode', 'smart')
+      notificationMode: config.get<'smart' | 'always' | 'never'>('notificationMode', 'smart'),
+      skipPendingCheck: config.get<boolean>('skipPendingCheck', false)
     };
   }
 

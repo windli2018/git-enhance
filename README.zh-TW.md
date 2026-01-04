@@ -49,6 +49,7 @@
 | `gitEnhance.crossFileNavigation.maxOpenEditors` | number | `10` | 跨檔案導覽期間保持開啟的最大編輯器數量 |
 | `gitEnhance.crossFileNavigation.enableReviewLoop` | boolean | `true` | 啟用審查循環檢測。啟用後，當您完成一輪完整的審查並返回到之前已審查過的檔案時，擴充功能將通知您 |
 | `gitEnhance.crossFileNavigation.notificationMode` | string | `smart` | 控制何時顯示邊界通知：`smart`（每次工作階段前 3 次）、`always` 或 `never` |
+| `gitEnhance.crossFileNavigation.skipPendingCheck` | boolean | `false` | 跳過等待檢查，到達邊界時直接跳轉到下一個/上一個檔案 |
 
 ### 配置示例
 
