@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { EditorTracker } from './editorTracker';
 
 export interface EditorBoundaryState {
   pendingNextFileJump: boolean;
@@ -26,6 +27,13 @@ export class StateManager {
   // Smart notification mode - track show count per VS Code session
   private boundaryNotificationCount: number = 0;
   private readonly SMART_MODE_MAX_COUNT = 3;
+  
+  // Reference to EditorTracker for unified session management
+  private editorTracker?: EditorTracker;
+
+  public setEditorTracker(editorTracker: EditorTracker): void {
+    this.editorTracker = editorTracker;
+  }
 
   private getEditorKey(editor: vscode.TextEditor | string): string {
     if (typeof editor === 'string') {
@@ -158,6 +166,94 @@ export class StateManager {
   }
 
   // Loop mode methods - support multiple concurrent sessions based on editor tracking
+  
+  /**
+   * Get or create a session for the given editor
+   * If editor has changes, create/reuse session; otherwise return null
+   * @param editor The editor to get/create session for
+   * @param direction Navigation direction
+   * @param editorMode Editor mode (compare or normal)
+   * @param overrideFileUri Optional file URI to use as start file (overrides editor.document.uri)
+   * @returns session if exists/created, null otherwise
+   */
+  public getOrCreateSession(
+    editor: vscode.TextEditor,
+    direction: 'next' | 'previous',
+    editorMode: 'compare' | 'normal',
+    overrideFileUri?: string
+  ): LoopModeState | null {
+    if (!this.editorTracker) {
+      throw new Error('EditorTracker not set. Call setEditorTracker first.');
+    }
+
+    const fileUri = overrideFileUri || editor.document.uri.toString();
+    
+    // Check if editor is already tracked
+    const existingSessionId = this.editorTracker.getEditorSessionId(editor);
+    if (existingSessionId) {
+      const session = this.getSessionById(existingSessionId);
+      if (session) {
+        // Session exists, return it
+        return session;
+      } else {
+        // Editor tracked but session lost - clean up and recreate
+        this.editorTracker.clearMark(editor);
+      }
+    }
+    
+    // Create new session
+    const newSessionId = this.editorTracker.markEditor(editor);
+    this.startLoopSession(newSessionId, fileUri, direction, editorMode);
+    return this.getSessionById(newSessionId);
+  }
+  
+  /**
+   * Inherit session to a new editor (when jumping to another file)
+   * @param newEditor The new editor to inherit session
+   * @param session The session to inherit
+   */
+  public inheritSession(newEditor: vscode.TextEditor, session: LoopModeState): void {
+    if (!this.editorTracker) {
+      throw new Error('EditorTracker not set. Call setEditorTracker first.');
+    }
+    
+    this.editorTracker.markEditorWithSessionId(newEditor, session.sessionId);
+  }
+  
+  /**
+   * Get session for an editor
+   * @param editor The editor to get session for
+   * @returns session if exists, null otherwise
+   */
+  public getSessionForEditor(editor: vscode.TextEditor): LoopModeState | null {
+    if (!this.editorTracker) {
+      return null;
+    }
+    
+    const sessionId = this.editorTracker.getEditorSessionId(editor);
+    if (!sessionId) {
+      return null;
+    }
+    
+    return this.getSessionById(sessionId);
+  }
+
+  /**
+   * Clear session and editor tracking
+   * @param editor The editor to clear
+   */
+  public clearSession(editor: vscode.TextEditor): void {
+    if (!this.editorTracker) {
+      return;
+    }
+    
+    const sessionId = this.editorTracker.getEditorSessionId(editor);
+    if (sessionId) {
+      this.resetLoopSession(sessionId);
+      this.editorTracker.clearMark(editor);
+    }
+  }
+
   public startLoopSession(sessionId: string, startFileUri: string, direction: 'next' | 'previous', editorMode: 'compare' | 'normal'): void {
     const session: LoopModeState = {
       startFileUri,

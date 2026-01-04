@@ -24,7 +24,8 @@ export class EditorModeDetector {
     
     // Check if the active tab is a diff editor
     const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-    if (activeTab?.input instanceof vscode.TabInputTextDiff) {
+    if (activeTab?.input instanceof vscode.TabInputTextDiff ||
+      activeTab?.input instanceof vscode.TabInputNotebookDiff ) {
       const modifiedUri = activeTab.input.modified;
       const originalUri = activeTab.input.original;
       
@@ -43,5 +44,42 @@ export class EditorModeDetector {
    */
   public static getEditorMode(editor: vscode.TextEditor | undefined): string {
     return this.isInCompareMode(editor) ? 'compare' : 'normal';
+  }
+
+  /**
+   * Detect the source of the current file (workingTree or index)
+   * This helps determine which git change list the current file belongs to
+   * @param editor The editor to check
+   * @returns 'index' if comparing staged changes, 'workingTree' otherwise
+   */
+  public static getFileSource(editor: vscode.TextEditor | undefined): 'workingTree' | 'index' {
+    if (!editor) {
+      return 'workingTree';
+    }
+
+    // Check if the active tab is a diff editor
+    const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    if (activeTab?.input instanceof vscode.TabInputTextDiff ||
+      activeTab?.input instanceof vscode.TabInputNotebookDiff 
+    ) {
+      const modifiedUri = activeTab.input.modified;
+      const originalUri = activeTab.input.original;
+      
+      // Staged changes: both sides are git scheme (index vs HEAD)
+      if (originalUri.scheme === 'git' && modifiedUri.scheme === 'git') {
+        return 'index';
+      }
+      
+      // Unstaged changes: file scheme (working) vs git scheme (index/HEAD)
+      if (modifiedUri.scheme === 'file' && originalUri.scheme === 'git') {
+        return 'workingTree';
+      }
+    } else if (editor.document.uri.scheme === 'git' || editor.document.uri.scheme === 'vscode-scm') {
+      //new file in stage
+      return 'index';
+    }
+    
+    // Default to working tree
+    return 'workingTree';
   }
 }

@@ -1,5 +1,14 @@
 import * as vscode from 'vscode';
 
+/**
+ * File with its source (workingTree or index or merge)
+ */
+export interface FileWithSource {
+  uri: vscode.Uri;
+  source: 'workingTree' | 'index' | 'merge';
+  resourceState?: any;  // Original Resource State object from Git API
+}
+
 export class SourceControlQuery {
   private gitExtension: any;
 
@@ -18,42 +27,164 @@ export class SourceControlQuery {
     }
   }
 
-  public async getModifiedFiles(): Promise<vscode.Uri[]> {
-    const modifiedFiles: vscode.Uri[] = [];
+  /**
+   * Merge workingTreeChanges, indexChanges, and mergeChanges from repository state
+   * Following the same order as Git extension's getSCMResource:
+   * workingTreeGroup -> indexGroup -> mergeGroup
+   * 
+   * Note: We use the public API (repo.state.workingTreeChanges) which returns Change[] (ApiChange[]).
+   * Since git.openChange expects Resource instances (which we cannot construct),
+   * we will pass URIs instead, and git.openChange will use getSCMResource to find the Resource.
+   * 
+   * DO NOT remove duplicates - same file can exist in multiple sources with different states
+   */
+  private mergeChangeLists(workingTreeChanges: any[], indexChanges: any[], mergeChanges: any[]): FileWithSource[] {
+    const result: FileWithSource[] = [];
 
-    await this.ensureGitExtension();
-
-    if (!this.gitExtension) {
-      return modifiedFiles;
-    }
-
-    const git = this.gitExtension.getAPI(1);
-    if (!git || !git.repositories || git.repositories.length === 0) {
-      return modifiedFiles;
-    }
-
-
-    // Get changes from all repositories
-    for (const repo of git.repositories) {
-      const changes = repo.state.workingTreeChanges || [];
-      const indexChanges = repo.state.indexChanges || [];
-      
-      // Combine working tree and index changes
-      const allChanges = [...changes, ...indexChanges];
-      
-      for (const change of allChanges) {
-        if (change.uri) {
-          modifiedFiles.push(change.uri);
-        }
+    // Step 1: Add all files from workingTreeChanges
+    for (const change of workingTreeChanges) {
+      if (change.uri) {
+        result.push({
+          uri: change.uri,
+          source: 'workingTree',
+          resourceState: change  // Keep Change object for reference
+        });
       }
     }
 
-    // Remove duplicates and sort by path
-    const uniqueFiles = Array.from(new Set(modifiedFiles.map(uri => uri.toString())))
-      .map(uriString => vscode.Uri.parse(uriString))
-      .sort((a, b) => a.fsPath.localeCompare(b.fsPath));
+    // Step 2: Add all files from indexChanges (NO deduplication)
+    for (const change of indexChanges) {
+      if (change.uri) {
+        result.push({
+          uri: change.uri,
+          source: 'index',
+          resourceState: change  // Keep Change object for reference
+        });
+      }
+    }
 
-    return uniqueFiles;
+    // Step 3: Add all files from mergeChanges (NO deduplication)
+    for (const change of mergeChanges) {
+      if (change.uri) {
+        result.push({
+          uri: change.uri,
+          source: 'merge',
+          resourceState: change  // Keep Change object for reference
+        });
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Get next modified file after current file
+   * @param currentFile Current file URI
+   * @param currentSource Source of current file ('workingTree' | 'index' | 'merge')
+   */
+  public async getNextModifiedFile(currentFile: vscode.Uri, currentSource: 'workingTree' | 'index' | 'merge'): Promise<FileWithSource | undefined> {
+    const repo = await this.getRepositoryForFile(currentFile);
+    if (!repo) {
+      return undefined;
+    }
+
+    const mergedFiles = this.mergeChangeLists(
+      repo.state.workingTreeChanges || [],
+      repo.state.indexChanges || [],
+      repo.state.mergeChanges || []
+    );
+
+    if (mergedFiles.length === 0) {
+      return undefined;
+    }
+
+    // Find current file index by matching both fsPath and source
+    const currentPath = currentFile.fsPath;
+    const currentIndex = mergedFiles.findIndex(f => 
+      f.uri.fsPath === currentPath && f.source === currentSource
+    );
+
+    if (currentIndex === -1) {
+      // Current file not found, return first file
+      return mergedFiles[0];
+    }
+
+    // Return next file, loop to first if at end
+    const nextIndex = (currentIndex + 1) % mergedFiles.length;
+    return mergedFiles[nextIndex];
+  }
+
+  /**
+   * Get previous modified file before current file
+   * @param currentFile Current file URI
+   * @param currentSource Source of current file ('workingTree' | 'index' | 'merge')
+   */
+  public async getPreviousModifiedFile(currentFile: vscode.Uri, currentSource: 'workingTree' | 'index' | 'merge'): Promise<FileWithSource | undefined> {
+    const repo = await this.getRepositoryForFile(currentFile);
+    if (!repo) {
+      return undefined;
+    }
+
+    const mergedFiles = this.mergeChangeLists(
+      repo.state.workingTreeChanges || [],
+      repo.state.indexChanges || [],
+      repo.state.mergeChanges || []
+    );
+
+    if (mergedFiles.length === 0) {
+      return undefined;
+    }
+
+    // Find current file index by matching both fsPath and source
+    const currentPath = currentFile.fsPath;
+    const currentIndex = mergedFiles.findIndex(f => 
+      f.uri.fsPath === currentPath && f.source === currentSource
+    );
+
+    if (currentIndex === -1) {
+      // Current file not found, return last file
+      return mergedFiles[mergedFiles.length - 1];
+    }
+
+    // Return previous file, loop to last if at beginning
+    const prevIndex = currentIndex === 0 ? mergedFiles.length - 1 : currentIndex - 1;
+    return mergedFiles[prevIndex];
+  }
+
+  /**
+   * Get first modified file
+   */
+  public async getFirstModifiedFile(fileUri: vscode.Uri): Promise<FileWithSource | undefined> {
+    const repo = await this.getRepositoryForFile(fileUri);
+    if (!repo) {
+      return undefined;
+    }
+
+    const mergedFiles = this.mergeChangeLists(
+      repo.state.workingTreeChanges || [],
+      repo.state.indexChanges || [],
+      repo.state.mergeChanges || []
+    );
+
+    return mergedFiles.length > 0 ? mergedFiles[0] : undefined;
+  }
+
+  /**
+   * Get last modified file
+   */
+  public async getLastModifiedFile(fileUri: vscode.Uri): Promise<FileWithSource | undefined> {
+    const repo = await this.getRepositoryForFile(fileUri);
+    if (!repo) {
+      return undefined;
+    }
+
+    const mergedFiles = this.mergeChangeLists(
+      repo.state.workingTreeChanges || [],
+      repo.state.indexChanges || [],
+      repo.state.mergeChanges || []
+    );
+
+    return mergedFiles.length > 0 ? mergedFiles[mergedFiles.length - 1] : undefined;
   }
 
   /**
@@ -85,32 +216,17 @@ export class SourceControlQuery {
   /**
    * Get modified files from the same repository as the given file
    */
-  public async getModifiedFilesInSameRepo(fileUri: vscode.Uri): Promise<vscode.Uri[]> {
+  public async getModifiedFilesInSameRepo(fileUri: vscode.Uri): Promise<FileWithSource[]> {
     const repo = await this.getRepositoryForFile(fileUri);
     if (!repo) {
-      // Fallback to all files if repo not found
-      return this.getModifiedFiles();
+      return [];
     }
 
-    const modifiedFiles: vscode.Uri[] = [];
-    const changes = repo.state.workingTreeChanges || [];
-    const indexChanges = repo.state.indexChanges || [];
-    
-    // Combine working tree and index changes
-    const allChanges = [...changes, ...indexChanges];
-    
-    for (const change of allChanges) {
-      if (change.uri) {
-        modifiedFiles.push(change.uri);
-      }
-    }
-
-    // Remove duplicates and sort by path
-    const uniqueFiles = Array.from(new Set(modifiedFiles.map(uri => uri.toString())))
-      .map(uriString => vscode.Uri.parse(uriString))
-      .sort((a, b) => a.fsPath.localeCompare(b.fsPath));
-
-    return uniqueFiles;
+    return this.mergeChangeLists(
+      repo.state.workingTreeChanges || [],
+      repo.state.indexChanges || [],
+      repo.state.mergeChanges || []
+    );
   }
 
   /**
@@ -133,70 +249,13 @@ export class SourceControlQuery {
       return false;
     }
 
-    // Check if file exists in working tree or index changes
-    const changes = repo.state.workingTreeChanges || [];
-    const indexChanges = repo.state.indexChanges || [];
-    const allChanges = [...changes, ...indexChanges];
-
-    return allChanges.some(change => 
-      change.uri && change.uri.toString() === fileUri.toString()
-    );
-  }
-
-  public async getFileIndex(currentFile: vscode.Uri): Promise<number> {
-    const modifiedFiles = await this.getModifiedFiles();
-    return modifiedFiles.findIndex(uri => uri.toString() === currentFile.toString());
-  }
-
-  public async getNextFile(currentFile: vscode.Uri, enableLoop: boolean): Promise<vscode.Uri | undefined> {
-    const modifiedFiles = await this.getModifiedFiles();
-    if (modifiedFiles.length === 0) {
-      return undefined;
-    }
-
-    const currentIndex = modifiedFiles.findIndex(uri => uri.toString() === currentFile.toString());
+    // Use fsPath for comparison to avoid URI query parameter issues
+    const filePath = fileUri.fsPath;
     
-    if (currentIndex === -1) {
-      // Current file not found, return first file
-      return modifiedFiles[0];
-    }
-
-    const nextIndex = currentIndex + 1;
-    if (nextIndex < modifiedFiles.length) {
-      return modifiedFiles[nextIndex];
-    }
-
-    // At last file, loop if enabled
-    if (enableLoop && modifiedFiles.length > 0) {
-      return modifiedFiles[0];
-    }
-
-    return undefined;
+    // Check all change types: workingTree, index, and merge
+    return (repo.state.workingTreeChanges || []).some((change: any) => change.uri && change.uri.fsPath === filePath) ||
+           (repo.state.indexChanges || []).some((change: any) => change.uri && change.uri.fsPath === filePath) ||
+           (repo.state.mergeChanges || []).some((change: any) => change.uri && change.uri.fsPath === filePath);
   }
 
-  public async getPreviousFile(currentFile: vscode.Uri, enableLoop: boolean): Promise<vscode.Uri | undefined> {
-    const modifiedFiles = await this.getModifiedFiles();
-    if (modifiedFiles.length === 0) {
-      return undefined;
-    }
-
-    const currentIndex = modifiedFiles.findIndex(uri => uri.toString() === currentFile.toString());
-    
-    if (currentIndex === -1) {
-      // Current file not found, return last file
-      return modifiedFiles[modifiedFiles.length - 1];
-    }
-
-    const prevIndex = currentIndex - 1;
-    if (prevIndex >= 0) {
-      return modifiedFiles[prevIndex];
-    }
-
-    // At first file, loop if enabled
-    if (enableLoop && modifiedFiles.length > 0) {
-      return modifiedFiles[modifiedFiles.length - 1];
-    }
-
-    return undefined;
-  }
 }

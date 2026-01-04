@@ -3,15 +3,16 @@ import * as vscode from 'vscode';
 interface TrackedEditorInfo {
   editor: vscode.TextEditor;
   timestamp: number;
+  sessionId: string;  // Each editor has its own session ID
 }
 
 /**
  * Tracks editors opened by the extension to maintain session continuity
  * with timestamp-based LRU eviction
+ * Each editor has its own unique session ID for tracking purposes
  */
 export class EditorTracker {
   private trackedEditors = new Map<vscode.TextEditor, TrackedEditorInfo>();
-  private currentSessionId: string | null = null;
   private maxTrackedEditors: number = 5;
 
   constructor(maxTrackedEditors: number = 5) {
@@ -19,16 +20,35 @@ export class EditorTracker {
   }
 
   /**
-   * Mark an editor as opened by this extension in current session
+   * Mark an editor as opened by this extension with a new session ID
    */
-  public markEditor(editor: vscode.TextEditor): void {
-    if (!this.currentSessionId) {
-      this.currentSessionId = this.generateSessionId();
-    }
+  public markEditor(editor: vscode.TextEditor): string {
+    const sessionId = this.generateSessionId();
     
     const info: TrackedEditorInfo = {
       editor,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      sessionId
+    };
+    
+    this.trackedEditors.set(editor, info);
+    
+    // Check if exceeds limit and close oldest
+    this.enforceLimit();
+    
+    return sessionId;
+  }
+
+  /**
+   * Mark an editor with a specific session ID (inheriting from opener)
+   * @param editor The editor to mark
+   * @param sessionId The session ID to assign
+   */
+  public markEditorWithSessionId(editor: vscode.TextEditor, sessionId: string): void {
+    const info: TrackedEditorInfo = {
+      editor,
+      timestamp: Date.now(),
+      sessionId
     };
     
     this.trackedEditors.set(editor, info);
@@ -47,9 +67,10 @@ export class EditorTracker {
 
   /**
    * Remove an editor from tracking (when closed)
+   * This removes the editor-sessionId mapping
    */
   public unmarkEditor(editor: vscode.TextEditor): void {
-    const removed = this.trackedEditors.delete(editor);
+    this.trackedEditors.delete(editor);
   }
 
   /**
@@ -124,10 +145,11 @@ export class EditorTracker {
   }
 
   /**
-   * Get session ID for an editor
+   * Get session ID for an editor by looking up the mapping table
    */
   public getEditorSessionId(editor: vscode.TextEditor): string | undefined {
-    return this.trackedEditors.has(editor) ? this.currentSessionId || undefined : undefined;
+    const info = this.trackedEditors.get(editor);
+    return info?.sessionId;
   }
 
   /**
@@ -147,26 +169,34 @@ export class EditorTracker {
   }
 
   /**
-   * Start a new tracking session
+   * Start a new tracking session for current active editor
+   * Returns the new session ID
    */
-  public startNewSession(): string {
-    this.currentSessionId = this.generateSessionId();
-    return this.currentSessionId;
+  public startNewSession(): string | undefined {
+    const activeEditor = vscode.window.activeTextEditor;
+    if (!activeEditor) {
+      return undefined;
+    }
+    return this.markEditor(activeEditor);
   }
 
   /**
-   * Get current session ID
+   * Get current session ID (deprecated - use getEditorSessionId instead)
+   * Returns session ID of active editor
    */
   public getCurrentSessionId(): string | null {
-    return this.currentSessionId;
+    const activeEditor = vscode.window.activeTextEditor;
+    if (!activeEditor) {
+      return null;
+    }
+    return this.getEditorSessionId(activeEditor) || null;
   }
 
   /**
-   * Reset tracking (clears session)
+   * Reset tracking (clears all editor-session mappings)
    */
   public reset(): void {
     this.trackedEditors.clear();
-    this.currentSessionId = null;
   }
 
   private generateSessionId(): string {

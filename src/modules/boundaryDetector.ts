@@ -40,9 +40,4 @@ export class BoundaryDetector {
     return { isAtFirst, moved };
   }
 
-  private isDiffEditor(editor: vscode.TextEditor): boolean {
-    // Check if the editor is showing a diff view
-    const uri = editor.document.uri;
-    return uri.scheme === 'git' || uri.scheme === 'file';
-  }
 }

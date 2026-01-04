@@ -2,7 +2,7 @@
   "name": "git-enhance",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "WindLi",
   "engines": {
     "vscode": "^1.80.0"
@@ -136,13 +136,16 @@
     ]
   },
   "scripts": {
+    "dev": "npm run compile",
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
     "lint": "eslint src --ext ts",
-    "package": "npm run compile && vsce package",
-    "publish": "npm run compile && vsce publish"
+    "prepackage": "npm run compile",
+    "package": "vsce package",
+    "prepublish": "npm run compile",
+    "publish": "vsce publish"
   },
   "devDependencies": {
     "@types/node": "^18.x",
