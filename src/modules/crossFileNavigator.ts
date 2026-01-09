@@ -3,6 +3,7 @@ import { SourceControlQuery, FileWithSource } from './sourceControlQuery';
 import { DiffNavigationCommands } from './diffNavigationCommands';
 import { EditorTracker } from './editorTracker';
 import { LoopModeState } from './stateManager';
+import { IncomingMessage } from 'http';
 
 export class CrossFileNavigator {
   private editorTracker: EditorTracker;
@@ -96,6 +97,9 @@ export class CrossFileNavigator {
       
       return true;
     } catch (error) {
+      if (!isInCompareMode && error instanceof Error && error.name === "CodeExpectedError"){
+        return this.openFileAndNavigateToFirstChange(fileWithSource, true, inheritSession);
+      }
       return false;
     }
   }
@@ -120,6 +124,9 @@ export class CrossFileNavigator {
       
       return true;
     } catch (error) {
+      if (!isInCompareMode && error instanceof Error && error.name === "CodeExpectedError"){
+        return this.openFileAndNavigateToLastChange(fileWithSource, true, inheritSession);
+      }
       return false;
     }
   }

@@ -2,7 +2,7 @@
   "name": "git-enhance",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "publisher": "WindLi",
   "engines": {
     "vscode": "^1.80.0"
