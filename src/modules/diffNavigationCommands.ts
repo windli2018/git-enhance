@@ -9,14 +9,12 @@ import { EditorModeDetector } from './editorModeDetector';
 export class DiffNavigationCommands {
   private static nextCommands = [
     'editor.action.dirtydiff.next',
-    'workbench.action.compareEditor.nextChange',
-    'editor.action.marker.nextInFiles'
+    'workbench.action.compareEditor.nextChange'
   ];
 
   private static previousCommands = [
     'editor.action.dirtydiff.previous',
-    'workbench.action.compareEditor.previousChange',
-    'editor.action.marker.prevInFiles'
+    'workbench.action.compareEditor.previousChange'
   ];
 
   private static workingNextCommandMap = new Map<string, string>();
@@ -49,7 +47,9 @@ export class DiffNavigationCommands {
         const isAtLast = positionAfter.line <= positionBefore.line;
         return {isAtLast, moved};
       } catch (e) {
+        // Command failed or not supported - treat as at boundary
         this.workingNextCommandMap.delete(editorType);
+        return {isAtLast: true, moved: false};
       }
     }
 
@@ -71,6 +71,7 @@ export class DiffNavigationCommands {
       }
     }
 
+    // No command worked - treat as at boundary (e.g., binary file or unsupported editor)
     return {isAtLast: true, moved: false};
   }
 
@@ -92,7 +93,9 @@ export class DiffNavigationCommands {
         const isAtFirst = positionAfter.line >= positionBefore.line;
         return {isAtFirst, moved};
       } catch (e) {
+        // Command failed or not supported - treat as at boundary
         this.workingPreviousCommandMap.delete(editorType);
+        return {isAtFirst: true, moved: false};
       }
     }
 
@@ -114,6 +117,7 @@ export class DiffNavigationCommands {
       }
     }
 
+    // No command worked - treat as at boundary (e.g., binary file or unsupported editor)
     return {isAtFirst: true, moved: false};
   }
 }

@@ -174,6 +174,20 @@ export class EditorTracker {
   }
 
   /**
+   * Get session ID by URI (when there's no editor)
+   * Searches through tracked editors to find one with matching URI
+   */
+  public getSessionIdByUri(uri: vscode.Uri): string | undefined {
+    const uriString = uri.toString();
+    for (const [editor, info] of this.trackedEditors.entries()) {
+      if (editor.document.uri.toString() === uriString) {
+        return info.sessionId;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Get the file source for an editor
    * @param editor The editor to get source for
    * @returns file source if available, undefined otherwise

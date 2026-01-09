@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { StateManager } from './stateManager';
+import { StateManager, LoopModeState } from './stateManager';
 import { BoundaryDetector } from './boundaryDetector';
 import { NotificationManager } from './notificationManager';
 import { CrossFileNavigator } from './crossFileNavigator';
@@ -32,8 +32,8 @@ export class CommandHandler {
           const result = await this.boundaryDetector.checkAndExecuteNext(editor);
           return result.isAtLast;
         },
-        getPendingJump: (editor: vscode.TextEditor) => this.stateManager.getPendingNextFileJump(editor),
-        setPendingJump: (editor: vscode.TextEditor) => this.stateManager.setPendingNextFileJump(editor, true, false),
+        getPendingJump: (editorOrUri: vscode.TextEditor | vscode.Uri) => this.stateManager.getPendingNextFileJump(editorOrUri),
+        setPendingJump: (editorOrUri: vscode.TextEditor | vscode.Uri) => this.stateManager.setPendingNextFileJump(editorOrUri, true, false),
         getTargetFile: (editor: vscode.TextEditor) => this.sourceControlQuery.getFirstModifiedFile(editor.document.uri),
         showBoundaryNotification: () => this.notificationManager.showReachedLastChange(),
         openTargetFile: (file: any, session: any) => 
@@ -53,8 +53,8 @@ export class CommandHandler {
           const result = await this.boundaryDetector.checkAndExecutePrevious(editor);
           return result.isAtFirst;
         },
-        getPendingJump: (editor: vscode.TextEditor) => this.stateManager.getPendingPreviousFileJump(editor),
-        setPendingJump: (editor: vscode.TextEditor) => this.stateManager.setPendingPreviousFileJump(editor, true, false),
+        getPendingJump: (editorOrUri: vscode.TextEditor | vscode.Uri) => this.stateManager.getPendingPreviousFileJump(editorOrUri),
+        setPendingJump: (editorOrUri: vscode.TextEditor | vscode.Uri) => this.stateManager.setPendingPreviousFileJump(editorOrUri, true, false),
         getTargetFile: (editor: vscode.TextEditor) => this.sourceControlQuery.getLastModifiedFile(editor.document.uri),
         showBoundaryNotification: () => this.notificationManager.showReachedFirstChange(),
         openTargetFile: (file: any, session: any) => 
@@ -189,12 +189,64 @@ export class CommandHandler {
   }
 
   /**
+   * Handle navigation when there's no active editor
+   * Try to open the first/last available file with changes
+   * @param direction Navigation direction
+   * @param currentUri Optional URI of the current active tab (if available)
+   */
+  private async handleNoEditorNavigation(direction: 'next' | 'previous', currentUri?: vscode.Uri): Promise<void> {
+    const strategy = this.navigationStrategies[direction];
+    
+    // If we have a current URI, try to get next/previous file relative to it
+    if (currentUri) {
+      // Check if there's a pending jump for this URI
+      const pendingJump = this.ignorePendingCheck() || strategy.getPendingJump(currentUri);
+      
+      if (pendingJump) {
+        // Second navigation - jump to next/previous file
+        this.stateManager.resetPendingStates(currentUri);
+        
+        // Detect source from URI and active tab
+        const source = EditorModeDetector.getFileSourceFromUri(currentUri);
+        const nextFile = direction === 'next' 
+          ? await this.sourceControlQuery.getNextModifiedFile(currentUri, source)
+          : await this.sourceControlQuery.getPreviousModifiedFile(currentUri, source);
+        
+        if (nextFile) {
+          await strategy.openFile(nextFile, true, null);
+          return;
+        }
+        // If no next/previous file found, show no files notification
+        await this.notificationManager.showNoModifiedFiles();
+      } else {
+        // First navigation - set pending and show notification
+        strategy.setPendingJump(currentUri);
+        const shouldShow = this.stateManager.shouldShowBoundaryNotification(this.notificationMode);
+        this.notificationManager.setShouldShow(shouldShow);
+        await strategy.showBoundaryNotification();
+        
+        if (this.notificationMode === 'smart' && shouldShow) {
+          this.stateManager.incrementNotificationCount();
+        }
+      }
+    } 
+  }
+
+  /**
    * Unified handler for change navigation (next/previous)
    */
   private async handleChangeNavigation(direction: 'next' | 'previous'): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     
     if (!editor) {
+      // No active text editor - try to get URI from active tab
+      const activeTab = vscode.window.tabGroups.activeTabGroup?.activeTab;
+      const tabUri = activeTab?.input instanceof Object && 'uri' in activeTab.input 
+        ? (activeTab.input as any).uri 
+        : undefined;
+      
+      // Try to jump to next/previous file directly
+      await this.handleNoEditorNavigation(direction, tabUri);
       return;
     }
 
@@ -300,12 +352,27 @@ export class CommandHandler {
    */
   private async checkLoopCompletion(direction: 'next' | 'previous'): Promise<void> {
     const newEditor = vscode.window.activeTextEditor;
-    if (!newEditor) {
-      return;
+    const activeTab = vscode.window.tabGroups.activeTabGroup?.activeTab;
+    let newFileUri: string;
+    let newSession: LoopModeState | null;
+    
+    if (newEditor) {
+      // Has editor - use it directly
+      newFileUri = newEditor.document.uri.toString();
+      newSession = this.stateManager.getSessionForEditor(newEditor);
+    } else {
+      // No editor - try to get from active tab
+      const tabUri = activeTab?.input instanceof Object && 'uri' in activeTab.input 
+        ? (activeTab.input as any).uri 
+        : undefined;
+      
+      if (!tabUri) {
+        return;
+      }
+      
+      newFileUri = tabUri.toString();
+      newSession = this.stateManager.getSessionForUri(tabUri);
     }
-
-    const newFileUri = newEditor.document.uri.toString();
-    const newSession = this.stateManager.getSessionForEditor(newEditor);
     
     // Loop complete only if: returned to start file AND direction matches AND start file was reviewed
     if (newSession && 
@@ -314,7 +381,12 @@ export class CommandHandler {
         this.stateManager.hasReviewedStartFile(newSession.sessionId)) {
       await this.notificationManager.showAlreadyReviewed();
       // Clean up: clear session and editor tracking
-      this.stateManager.clearSession(newEditor);
+      if (newEditor) {
+        this.stateManager.clearSession(newEditor);
+      } else if (activeTab?.input instanceof Object && 'uri' in activeTab.input) {
+        const tabUri = (activeTab.input as any).uri;
+        this.stateManager.clearSession(tabUri);
+      }
     }
   }
 

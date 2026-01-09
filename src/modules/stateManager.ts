@@ -35,9 +35,12 @@ export class StateManager {
     this.editorTracker = editorTracker;
   }
 
-  private getEditorKey(editor: vscode.TextEditor | string): string {
+  private getEditorKey(editor: vscode.TextEditor | vscode.Uri | string): string {
     if (typeof editor === 'string') {
       return editor;
+    }
+    if (editor instanceof vscode.Uri) {
+      return editor.toString();
     }
     return editor.document.uri.toString();
   }
@@ -56,9 +59,9 @@ export class StateManager {
     return state;
   }
 
-  public setPendingNextFileJump(editor: vscode.TextEditor, value: boolean, capturedMode?: boolean): void {
-    const editorKey = this.getEditorKey(editor);
-    const currentLine = editor.selection.active.line;
+  public setPendingNextFileJump(editorOrUri: vscode.TextEditor | vscode.Uri, value: boolean, capturedMode?: boolean): void {
+    const editorKey = this.getEditorKey(editorOrUri);
+    const currentLine = editorOrUri instanceof vscode.Uri ? 0 : editorOrUri.selection.active.line;
     const state = this.getOrCreateState(editorKey, currentLine);
     
     state.pendingNextFileJump = value;
@@ -70,9 +73,9 @@ export class StateManager {
     }
   }
 
-  public setPendingPreviousFileJump(editor: vscode.TextEditor, value: boolean, capturedMode?: boolean): void {
-    const editorKey = this.getEditorKey(editor);
-    const currentLine = editor.selection.active.line;
+  public setPendingPreviousFileJump(editorOrUri: vscode.TextEditor | vscode.Uri, value: boolean, capturedMode?: boolean): void {
+    const editorKey = this.getEditorKey(editorOrUri);
+    const currentLine = editorOrUri instanceof vscode.Uri ? 0 : editorOrUri.selection.active.line;
     const state = this.getOrCreateState(editorKey, currentLine);
     
     state.pendingPreviousFileJump = value;
@@ -84,52 +87,58 @@ export class StateManager {
     }
   }
 
-  public getPendingNextFileJump(editor: vscode.TextEditor): boolean {
-    const editorKey = this.getEditorKey(editor);
-    const currentLine = editor.selection.active.line;
+  public getPendingNextFileJump(editorOrUri: vscode.TextEditor | vscode.Uri): boolean {
+    const editorKey = this.getEditorKey(editorOrUri);
     const state = this.editorStates.get(editorKey);
     
     if (!state) {
       return false;
     }
     
-    // If cursor moved to different line, reset pending state
-    if (currentLine !== state.lastLine) {
-      state.pendingNextFileJump = false;
-      state.lastLine = currentLine;
-      return false;
+    // Only check cursor movement for TextEditor, not URI
+    if (!(editorOrUri instanceof vscode.Uri)) {
+      const currentLine = editorOrUri.selection.active.line;
+      // If cursor moved to different line, reset pending state
+      if (currentLine !== state.lastLine) {
+        state.pendingNextFileJump = false;
+        state.lastLine = currentLine;
+        return false;
+      }
     }
     
     return state.pendingNextFileJump;
   }
 
-  public getPendingPreviousFileJump(editor: vscode.TextEditor): boolean {
-    const editorKey = this.getEditorKey(editor);
-    const currentLine = editor.selection.active.line;
+  public getPendingPreviousFileJump(editorOrUri: vscode.TextEditor | vscode.Uri): boolean {
+    const editorKey = this.getEditorKey(editorOrUri);
     const state = this.editorStates.get(editorKey);
     
     if (!state) {
       return false;
     }
     
-    // If cursor moved to different line, reset pending state
-    if (currentLine !== state.lastLine) {
-      state.pendingPreviousFileJump = false;
-      state.lastLine = currentLine;
-      return false;
+    // Only check cursor movement for TextEditor, not URI
+    if (!(editorOrUri instanceof vscode.Uri)) {
+      const currentLine = editorOrUri.selection.active.line;
+      // If cursor moved to different line, reset pending state
+      if (currentLine !== state.lastLine) {
+        state.pendingPreviousFileJump = false;
+        state.lastLine = currentLine;
+        return false;
+      }
     }
     
     return state.pendingPreviousFileJump;
   }
 
-  public getCapturedMode(editor: vscode.TextEditor): boolean | undefined {
-    const editorKey = this.getEditorKey(editor);
+  public getCapturedMode(editorOrUri: vscode.TextEditor | vscode.Uri): boolean | undefined {
+    const editorKey = this.getEditorKey(editorOrUri);
     const state = this.editorStates.get(editorKey);
     return state?.capturedIsInCompareMode;
   }
 
-  public resetPendingStates(editor: vscode.TextEditor): void {
-    const editorKey = this.getEditorKey(editor);
+  public resetPendingStates(editorOrUri: vscode.TextEditor | vscode.Uri): void {
+    const editorKey = this.getEditorKey(editorOrUri);
     
     const state = this.editorStates.get(editorKey);
     if (state) {
@@ -239,18 +248,41 @@ export class StateManager {
   }
 
   /**
-   * Clear session and editor tracking
-   * @param editor The editor to clear
+   * Get session for a URI (when there's no editor)
+   * @param uri The URI to get session for
+   * @returns session if exists, null otherwise
    */
-  public clearSession(editor: vscode.TextEditor): void {
+  public getSessionForUri(uri: vscode.Uri): LoopModeState | null {
+    if (!this.editorTracker) {
+      return null;
+    }
+    
+    const sessionId = this.editorTracker.getSessionIdByUri(uri);
+    if (!sessionId) {
+      return null;
+    }
+    
+    return this.getSessionById(sessionId);
+  }
+
+  /**
+   * Clear session and editor tracking
+   * @param editorOrUri The editor or URI to clear
+   */
+  public clearSession(editorOrUri: vscode.TextEditor | vscode.Uri): void {
     if (!this.editorTracker) {
       return;
     }
     
-    const sessionId = this.editorTracker.getEditorSessionId(editor);
+    const sessionId = editorOrUri instanceof vscode.Uri
+      ? this.editorTracker.getSessionIdByUri(editorOrUri)
+      : this.editorTracker.getEditorSessionId(editorOrUri);
+    
     if (sessionId) {
       this.resetLoopSession(sessionId);
-      this.editorTracker.clearMark(editor);
+      if (!(editorOrUri instanceof vscode.Uri)) {
+        this.editorTracker.clearMark(editorOrUri);
+      }
     }
   }
 

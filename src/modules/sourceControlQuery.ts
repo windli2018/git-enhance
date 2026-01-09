@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { comparePaths } from '../utils/pathComparers';
 
 /**
  * File with its source (workingTree or index or merge)
@@ -37,9 +38,10 @@ export class SourceControlQuery {
    * we will pass URIs instead, and git.openChange will use getSCMResource to find the Resource.
    * 
    * DO NOT remove duplicates - same file can exist in multiple sources with different states
+   * Sort using VS Code SCM's comparePaths logic for consistent ordering
    */
   private mergeChangeLists(workingTreeChanges: any[], indexChanges: any[], mergeChanges: any[]): FileWithSource[] {
-    const result: FileWithSource[] = [];
+    var result: FileWithSource[] = [];
 
     // Step 1: Add all files from workingTreeChanges
     for (const change of workingTreeChanges) {
@@ -74,6 +76,8 @@ export class SourceControlQuery {
       }
     }
 
+    // Sort using VS Code SCM's comparePaths logic
+    result = result.sort((a, b) => comparePaths(a.uri.fsPath, b.uri.fsPath));
     return result;
   }
 
@@ -94,15 +98,21 @@ export class SourceControlQuery {
       repo.state.mergeChanges || []
     );
 
+
     if (mergedFiles.length === 0) {
       return undefined;
     }
 
     // Find current file index by matching both fsPath and source
     const currentPath = currentFile.fsPath;
-    const currentIndex = mergedFiles.findIndex(f => 
+    var currentIndex = mergedFiles.findIndex(f => 
       f.uri.fsPath === currentPath && f.source === currentSource
     );
+     if (currentIndex === -1) {
+        currentIndex = mergedFiles.findIndex(f => 
+        f.uri.fsPath === currentPath
+      );
+    }
 
     if (currentIndex === -1) {
       // Current file not found, return first file

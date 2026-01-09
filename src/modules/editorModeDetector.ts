@@ -97,4 +97,47 @@ export class EditorModeDetector {
     // Default to working tree
     return 'workingTree';
   }
+
+  /**
+   * Detect the source from URI and active tab when there's no editor
+   * @param uri The URI to check
+   * @returns 'index' if comparing staged changes, 'merge' if in merge conflict, 'workingTree' otherwise
+   */
+  public static getFileSourceFromUri(uri: vscode.Uri): 'workingTree' | 'index' | 'merge' {
+    // Check URI scheme first
+    if (uri.scheme === 'git' || uri.scheme === 'vscode-scm') {
+      return 'index';
+    }
+
+    // Check if the active tab is a diff editor with this URI
+    const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    if (activeTab?.input instanceof vscode.TabInputTextDiff ||
+      activeTab?.input instanceof vscode.TabInputNotebookDiff
+    ) {
+      const modifiedUri = activeTab.input.modified;
+      const originalUri = activeTab.input.original;
+      
+      // Check if this URI matches the modified side
+      if (modifiedUri.toString() === uri.toString() || originalUri.toString() === uri.toString()) {
+        // Check for merge conflicts (both sides are git scheme with merge-base)
+        const query = new URLSearchParams(originalUri.query);
+        if (query.has('mergeBase')) {
+          return 'merge';
+        }
+        
+        // Staged changes: both sides are git scheme (index vs HEAD)
+        if (originalUri.scheme === 'git' && modifiedUri.scheme === 'git') {
+          return 'index';
+        }
+        
+        // Unstaged changes: file scheme (working) vs git scheme (index/HEAD)
+        if (modifiedUri.scheme === 'file' && originalUri.scheme === 'git') {
+          return 'workingTree';
+        }
+      }
+    }
+    
+    // Default to working tree
+    return 'workingTree';
+  }
 }
